@@ -3,8 +3,7 @@ a simple program for generating animated crossections of 3d models as sounds for
 
 blah blah MIT License blah blah i don't care do whatever you want with this thing
 
-i made this because of this interaction i had with a friend:
-![image](https://github.com/user-attachments/assets/5d8d59e0-1aaf-4718-b194-4092b07be632)
+i made this after a conversation with a friend where they said my musical future was to "create a track that, when run through a vectorscope, provides detailed cross-sections of an actually physically feasible device that could send you anywhere in the universe at any point in time". i jokingly said "i could actually do that already. i have most of the knowledge required. except for the teleportation device part. the music would be easy at that point.". here's the music part. still working on the teleportation device
 
 i think the output of this program counts as "music". it's hard to define music in a way that includes niche things and excludes whatever this is
 
