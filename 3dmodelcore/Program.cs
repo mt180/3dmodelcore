@@ -1,32 +1,93 @@
-﻿Console.Write("filepath (.obj model): ");
-string filepath = Console.ReadLine() ?? "";
-Console.WriteLine();
+﻿string filepath = null;
+int axis = -1;
+int numsplits = -1;
+int samplerate = -1;
+int sliceAudioLength = -1;
+string outpath = null;
+bool confirm = true;
+bool homogenize = true;
 
-string[] fileContent = File.ReadAllLines(filepath);
+string[] arguments = string.Join(" ", args).Split(" -").Where((string str) => !string.IsNullOrWhiteSpace(str)).ToArray();
+foreach(string arg in arguments)
+{
+    string argTrim = arg.Trim().Trim('-');
 
-Console.Write("axis (1,2,3): ");
-int axis = int.Parse(Console.ReadLine() ?? "") - 1;
-if (axis < 0 || axis > 2) Console.WriteLine("\n bombshoes. it's over");
-Console.WriteLine();
+    if (argTrim == "noconfirm") { confirm = false; continue; }
+    if (argTrim == "nosmooth") { homogenize = false; continue; }
 
-Console.Write("number of splits: ");
-int numsplits = int.Parse(Console.ReadLine() ?? "");
-if (numsplits < 1) Console.WriteLine("\n why");
-Console.WriteLine();
+    switch (argTrim[0])
+    {
+        case 'i':
+            filepath = argTrim[2..];
+            break;
+        case 'a':
+            axis = int.Parse(argTrim[2..]) - 1;
+            break;
+        case 'n':
+            numsplits = int.Parse(argTrim[2..]);
+            break;
+        case 's':
+            samplerate = int.Parse(argTrim[2..]);
+            break;
+        case 'l':
+            sliceAudioLength = int.Parse(argTrim[2..]);
+            break;
+        case 'o':
+            outpath = argTrim[2..];
+            break;
+        default:
+            errorTerminate(argTrim + " is an invalid argument");
+            break;
+    }
+}
 
-Console.Write("samplerate: ");
-int samplerate = int.Parse(Console.ReadLine() ?? "");
-if (samplerate < 1) Console.WriteLine("\n why");
-Console.WriteLine();
+if (filepath == null)
+{
+    Console.Write("filepath (.obj model): ");
+    filepath = Console.ReadLine() ?? "";
+    Console.WriteLine();
+}
 
-Console.Write("samples per slice: ");
-int sliceAudioLength = int.Parse(Console.ReadLine() ?? "");
-if (sliceAudioLength < 1) Console.WriteLine("\n why");
-Console.WriteLine();
+string[] fileContent = File.ReadAllLines(filepath ?? "");
 
-Console.Write("output filepath: ");
-string outpath = Console.ReadLine() ?? "";
-Console.WriteLine();
+if (axis == -1)
+{
+    Console.Write("axis (1,2,3): ");
+    axis = int.Parse(Console.ReadLine() ?? "") - 1;
+    Console.WriteLine();
+}
+if (axis < 0 || axis > 2) errorTerminate("bombshoes. it's over (invalid axis)");
+
+if (numsplits == -1)
+{
+    Console.Write("number of splits: ");
+    numsplits = int.Parse(Console.ReadLine() ?? "");
+    Console.WriteLine();
+}
+if (numsplits < 1) errorTerminate("why (invalid number of splits)");
+
+if (samplerate == -1)
+{
+    Console.Write("samplerate: ");
+    samplerate = int.Parse(Console.ReadLine() ?? "");
+    Console.WriteLine();
+}
+if (samplerate < 1) errorTerminate("why (invalid samplerate");
+
+if (sliceAudioLength == -1)
+{
+    Console.Write("samples per slice: ");
+    sliceAudioLength = int.Parse(Console.ReadLine() ?? "");
+    Console.WriteLine();
+}
+if (sliceAudioLength < 1) errorTerminate("why (invalid split length)");
+
+if (outpath == null)
+{
+    Console.Write("output filepath: ");
+    outpath = Console.ReadLine() ?? "";
+    Console.WriteLine();
+}
 
 FileStream outfile = File.Create(outpath);
 
@@ -283,6 +344,17 @@ for (int splitIndex = 0; splitIndex < splits.Length; splitIndex++)
 
 Console.WriteLine();
 
+if (homogenize)
+{
+    for (int splitIndex = 0; splitIndex < splits.Length; splitIndex++)
+    {
+        splits[splitIndex].HomogenizeChains();
+
+        rewriteProgress(((float)splitIndex + 1) / numsplits, $"homogenized {splitIndex + 1}/{numsplits}");
+    }
+    Console.WriteLine();
+}
+
 //audio header
 
 BinaryWriter writer = new BinaryWriter(outfile);
@@ -323,9 +395,16 @@ for (int splitInd = 0; splitInd < splits.Length; splitInd++)
 writer.Close();
 outfile.Close();
 
-Console.WriteLine("\nfinished :). press enter to end it all");
-Console.ReadLine();
-
+Console.Write("\nfinished :).");
+if (confirm)
+{
+    Console.WriteLine(" press enter to end it all");
+    Console.ReadLine();
+}
+else
+{
+    Console.WriteLine();
+}
 
 
 static int parseVertexIndex(string indexStr)
@@ -347,6 +426,14 @@ static float map(float t, float start, float end, float toStart, float toEnd)
 {
     //if (t < start || t > end) Console.WriteLine("invalid t");
     return ((t - start) / (end - start)) * (toEnd - toStart) + toStart;
+}
+
+static void errorTerminate(string message)
+{
+    Console.WriteLine(message);
+    Console.WriteLine("press enter to terminate");
+    Console.ReadLine();
+    System.Environment.Exit(1);
 }
 
 /*
@@ -461,6 +548,46 @@ struct Split
     public List<Chain> chains = new List<Chain>();
 
     public Split(){}
+    public void HomogenizeChains()
+    {
+        foreach (Chain chain in this.chains)
+        {
+            float minX = float.PositiveInfinity;
+            int minInd = -1;
+            for (int i = 0; i < chain.nodes.Count; i++)
+            {
+                if(this.points[chain.nodes[i]][0] < minX)
+                {
+                    minX = this.points[chain.nodes[i]][0];
+                    minInd = i;
+                }
+            }
+
+            bool left = false;
+            if (this.points[chain.nodes[(minInd + 1) % chain.nodes.Count]][1] >
+                    this.points[chain.nodes[(minInd - 1 + chain.nodes.Count) % chain.nodes.Count]][1]) left = true;
+
+            bool loop = chain.nodes.First() == chain.nodes.Last();
+            if (loop) chain.nodes.RemoveAt(chain.nodes.Count - 1);
+
+            if (left)
+            {
+                minInd = chain.nodes.Count - minInd - 1;
+                chain.nodes.Reverse();
+            }
+            
+            List<int> A = chain.nodes.Skip(minInd).ToList();
+            List<int> B = chain.nodes.SkipLast(chain.nodes.Count - minInd + 1).ToList();
+
+            chain.nodes.Clear();
+            chain.nodes.AddRange(A);
+            chain.nodes.AddRange(B);
+            if (loop)
+            {
+                chain.nodes.Add(chain.nodes.First());
+            }
+        }
+    }
 }
 
 struct Line
