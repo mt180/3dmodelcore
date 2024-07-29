@@ -32,11 +32,11 @@ as of 1.1.0, command line arguments are supported
 - -nosmooth : skips the homogenization step added in 1.1.0
 
 ## ok but what is happening though
-the steps are as follows:
-parsing: the .obj file is read line by line to collect vertex and triangle data
-splitting: the frames are created as a set of points and line segments
-optimizing: each frame's line segments are transformed into "chains", which are longer sets of consecutive connected points that must be visited. this step also includes a greedy solution to minimizing the length between each chain's start and end points
-homogenizing (v1.1.0): attempts to make the output have a less jarring cyclic waveform by having each frame start in a spot that's closer to the previous frame's starting point
+the steps are as follows:\
+parsing: the .obj file is read line by line to collect vertex and triangle data\
+splitting: the frames are created as a set of points and line segments\
+optimizing: each frame's line segments are transformed into "chains", which are longer sets of consecutive connected points that must be visited. this step also includes a greedy solution to minimizing the length between each chain's start and end points\
+homogenizing (v1.1.0): attempts to make the output have a less jarring cyclic waveform by having each frame start in a spot that's closer to the previous frame's starting point\
 writing: outputs each frame to the audio file
 
 ## the code
