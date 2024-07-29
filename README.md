@@ -8,8 +8,8 @@ i made this after a conversation with a friend where they said my musical future
 i think the output of this program counts as "music". it's hard to define music in a way that includes niche things and excludes whatever this is
 
 ## demo
-release https://youtu.be/bWAZpQ75qxU
-1.1.0 wip
+- release https://youtu.be/bWAZpQ75qxU
+- 1.1.0 wip
 
 ## usage
 run the .exe in the same folder as (at least) the .dll and the .runtimeconfig.json files. i am unsure if the other two files are necessary on other devices, but it runs fine without them on mine.
